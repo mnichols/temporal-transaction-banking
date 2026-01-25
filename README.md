@@ -5,9 +5,9 @@ Patterns for batch creation, transaction splitting, concurrent processing, etc
 
 - **[PAIN-113 Generator](files/USAGE.md)** - Generate test PAIN.001.001.03 payment XML files
 
-## Prequisites
+## Prerequisites
 
-* Temporal Namespace named `initiation`
+* Temporal Namespace named `initiations`
 
 ## Scope & Goals
 
@@ -16,7 +16,7 @@ This project is highly scoped to the following outcome:
 > Everything required to turn intent into authorized, risk-cleared payment obligations, ready for execution.
 
 * The Java 21 + SpringBoot implementation is found in the `java` directory
-* Inside the java project, there is one module named `initiation`.
+* Inside the java project, there is one module named `initiations`.
 * That module contains three submodules:
   * `api` for Spring boot REST API controllers (deployable)
   * `core` for domain business logic, temporal workflows and reusable things like clients and so on. (non-deployable)
@@ -26,7 +26,7 @@ This project is highly scoped to the following outcome:
 
 ## Implementation 
 
-There is only one Temporal Namespace used for this project: `initiation`.
+There is only one Temporal Namespace used for this project: `initiations`.
 
 ### `core` module
 
@@ -64,16 +64,16 @@ The two steps this will support eventually are:
 1. Fraud check on the batch
 2. Transmit (route) the batch to the appropriate downstream system
 
-
 ### `api` module
 
 Has a REST API controller with endpoints for:
 
 `PUT /api/v1/files/{file_id}` where `file_id` is the ID of the file to be processed.
 
-It returns a 202 Accepted for kicking off the File with a `ProcessFileRequest`.
+It returns a 202 Accepted after using the Temporal SDK Client to `Start` a `File` Workflow with an `InitiateFileRequest`.
 
 This is a Spring application so use Temporal's Springboot starter and configure `start_workers` to be **false** since we only need a client.
+The TaskQueue used is `initiations`.
 
 ### `workers` module
 
