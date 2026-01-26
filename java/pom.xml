@@ -79,6 +79,13 @@
                 <version>${micrometer.version}</version>
             </dependency>
 
+            <!-- OpenTelemetry Spring Boot Starter -->
+            <dependency>
+                <groupId>io.opentelemetry.instrumentation</groupId>
+                <artifactId>opentelemetry-spring-boot-starter</artifactId>
+                <version>2.9.0</version>
+            </dependency>
+
             <!-- Protocol Buffers -->
             <dependency>
                 <groupId>com.google.protobuf</groupId>
