@@ -12,7 +12,7 @@
 ### Step 1: Start Temporal Server
 
 ```bash
-cd /path/to/temporal-file-processing
+cd /path/to/temporal-transaction-banking
 
 # Start Temporal server and UI
 docker-compose up -d
@@ -153,17 +153,17 @@ docker-compose down
 ### Build Container Images
 
 ```bash
-cd /path/to/temporal-file-processing
+cd /path/to/temporal-transaction-banking
 
 # Build API image
 docker build \
   -f docker/Dockerfile.api \
-  -t temporal-file-processing/initiations-api:latest .
+  -t temporal-transaction-banking/initiations-api:latest .
 
 # Build Workers image
 docker build \
   -f docker/Dockerfile.workers \
-  -t temporal-file-processing/initiations-workers:latest .
+  -t temporal-transaction-banking/initiations-workers:latest .
 ```
 
 ### Run with Docker Compose (Full Stack)

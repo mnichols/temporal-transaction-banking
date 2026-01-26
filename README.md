@@ -1,10 +1,10 @@
-# Temporal File Processing
+# Temporal Transaction Banking
 
-Batch creation, transaction splitting, concurrent processing for ISO 20022 PAIN payment file processing using Temporal workflows.
+Batch creation, transaction splitting, concurrent processing for ISO 20022 PAIN payment transaction banking using Temporal workflows.
 
 ## Architecture
 
-This project implements payment file processing with the following bounded context:
+This project implements payment transaction banking with the following bounded context:
 
 - **initiations** - File processing, entitlement checks, batch creation based on payment criteria, fraud detection, and downstream transmission
 
@@ -20,7 +20,7 @@ This project implements payment file processing with the following bounded conte
 ## Project Structure
 
 ```
-temporal-file-processing/
+temporal-transaction-banking/
 ├── java/                          # Java implementation
 │   ├── pom.xml                   # Root Maven parent POM
 │   ├── generated/                # Code generation output
@@ -228,8 +228,8 @@ mvn test
 mvn clean install -P production
 
 # Create Docker images
-docker build -f docker/Dockerfile.api -t temporal-file-processing/initiations-api:latest .
-docker build -f docker/Dockerfile.workers -t temporal-file-processing/initiations-workers:latest .
+docker build -f docker/Dockerfile.api -t temporal-transaction-banking/initiations-api:latest .
+docker build -f docker/Dockerfile.workers -t temporal-transaction-banking/initiations-workers:latest .
 ```
 
 ## Local Kubernetes Deployment

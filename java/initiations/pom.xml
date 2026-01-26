@@ -7,7 +7,7 @@
 
     <parent>
         <groupId>com.temporal.initiations</groupId>
-        <artifactId>temporal-file-processing</artifactId>
+        <artifactId>temporal-transaction-banking</artifactId>
         <version>1.0.0</version>
         <relativePath>..</relativePath>
     </parent>
@@ -16,7 +16,7 @@
     <packaging>pom</packaging>
 
     <name>Initiations Parent</name>
-    <description>Payment file processing domain - parent module</description>
+    <description>Payment transaction banking domain - parent module</description>
 
     <modules>
         <module>initiations-core</module>

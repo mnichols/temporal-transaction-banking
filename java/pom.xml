@@ -6,12 +6,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.temporal.initiations</groupId>
-    <artifactId>temporal-file-processing</artifactId>
+    <artifactId>temporal-transaction-banking</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
 
-    <name>Temporal File Processing</name>
-    <description>Payment file processing with Temporal workflows</description>
+    <name>Temporal Transaction Banking</name>
+    <description>Payment transaction banking with Temporal workflows</description>
 
     <modules>
         <module>initiations</module>
