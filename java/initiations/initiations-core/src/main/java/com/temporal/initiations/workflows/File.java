@@ -1,6 +1,6 @@
 package com.temporal.initiations.workflows;
 
-import com.temporal.initiations.messages.api.InitiateFileRequest;
+import com.temporal.initiations.messages.api.FileWorkflowInput;
 import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
@@ -8,9 +8,8 @@ import io.temporal.workflow.WorkflowMethod;
 /**
  * Workflow interface for processing payment files.
  *
- * This workflow handles the asynchronous processing of PAIN.001.001.03 XML
- * payment files submitted via the REST API. It orchestrates validation,
- * transformation, and persistence of payment data.
+ * This workflow handles the asynchronous processing of payment files.
+ * It orchestrates validation, transformation, and persistence of payment data.
  *
  * The workflow can be signaled to approve the file after processing.
  */
@@ -20,13 +19,10 @@ public interface File {
     /**
      * Main workflow method for processing a payment file.
      *
-     * Receives an InitiateFileRequest containing the file ID, XML content,
-     * and submitter information. Orchestrates the processing pipeline.
-     *
-     * @param request The file initiation request with XML content and metadata
+     * @param input The file workflow input containing file ID and submitter information
      */
     @WorkflowMethod
-    void processFile(InitiateFileRequest request);
+    void processFile(FileWorkflowInput input);
 
     /**
      * Signal method to approve the processed file.
