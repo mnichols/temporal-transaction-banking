@@ -1,80 +1,281 @@
-# temporal-file-processing
-Patterns for batch creation, transaction splitting, concurrent processing, etc
+# Temporal File Processing
+
+Batch creation, transaction splitting, concurrent processing for ISO 20022 PAIN payment file processing using Temporal workflows.
+
+## Architecture
+
+This project implements payment file processing with the following bounded context:
+
+- **initiations** - File processing, entitlement checks, batch creation based on payment criteria, fraud detection, and downstream transmission
+
+## Tech Stack
+
+- **Language**: Java 21
+- **Framework**: Spring Boot 4.0.2
+- **Orchestration**: Temporal Workflow Engine (1.32.1)
+- **Build**: Maven (multi-module)
+- **Deployment**: Docker Compose (local), Kubernetes (Minikube for local development)
+- **Observability**: OpenTelemetry, Micrometer Prometheus
+
+## Project Structure
+
+```
+temporal-file-processing/
+├── java/                          # Java implementation
+│   ├── pom.xml                   # Root Maven parent POM
+│   ├── generated/                # Code generation output
+│   └── initiations/
+│       ├── pom.xml               # Domain parent POM
+│       ├── initiations-core/     # Workflows, Activities, domain logic (non-deployable)
+│       ├── initiations-api/      # REST API (deployable Spring Boot JAR)
+│       └── initiations-workers/  # Temporal Workers (deployable Spring Boot JAR)
+├── proto/                         # Protocol Buffer definitions
+│   ├── buf.yaml                  # buf configuration
+│   └── payment/
+│       └── v1/
+│           └── payment.proto     # Payment message definitions
+├── docker/
+│   ├── Dockerfile.api            # initiations-api container image
+│   ├── Dockerfile.workers        # initiations-workers container image
+│   └── docker-compose.yaml       # Local development: Temporal + API + Workers
+├── k8s/                          # Kubernetes manifests
+│   ├── temporal-worker-controller/
+│   ├── initiations-api/
+│   ├── initiations-workers/
+│   └── kustomization.yaml
+├── docs/
+│   ├── ARCHITECTURE.md           # Domain design and bounded contexts
+│   ├── DEPLOYMENT.md             # Local and production deployment
+│   ├── WORKFLOWS.md              # File and Batch workflow specifications
+│   └── CONTRIBUTING.md           # Development guidelines
+├── files/                        # Test data and utilities
+│   ├── generate_pain_113.py      # PAIN.001.001.03 test file generator
+│   ├── README.md                 # PAIN ISO 20022 documentation
+│   ├── USAGE.md                  # File generator usage
+│   └── generated/                # Generated test files (gitignored)
+├── config/
+│   ├── temporal.yaml             # Temporal configuration
+│   └── environments/
+│       ├── dev.yaml
+│       ├── staging.yaml
+│       └── prod.yaml
+├── .github/
+│   └── workflows/
+│       └── build.yaml            # CI/CD pipeline
+├── .tool-versions                # asdf version management
+├── docker-compose.yaml           # Root-level: local development with Temporal
+└── .gitignore
+```
 
 ## Getting Started
 
-- **[PAIN-113 Generator](files/USAGE.md)** - Generate test PAIN.001.001.03 payment XML files
+### Prerequisites
 
-## Prerequisites
+- **Java 21** - Install via asdf: `asdf install` or manually
+- **Maven 3.8.1+** - Included with Java 21 in most distributions
+- **Docker & Docker Compose** - For local development with Temporal
+- **Temporal CLI** (optional) - For debugging: `brew install temporal`
 
-* Temporal Namespace named `initiations`
+### Quick Start - Local Development
 
-## Scope & Goals
+#### 1. Start Temporal Server (Docker Compose)
 
-This project is highly scoped to the following outcome:
+```bash
+docker-compose up -d
+```
 
-> Everything required to turn intent into authorized, risk-cleared payment obligations, ready for execution.
+This starts:
+- **Temporal Server** on localhost:7233
+- **Temporal UI** on http://localhost:8080
 
-* The Java 21 + SpringBoot implementation is found in the `java` directory
-* Inside the java project, there is one module named `initiations`.
-* That module contains three submodules:
-  * `api` for Spring boot REST API controllers (deployable)
-  * `core` for domain business logic, temporal workflows and reusable things like clients and so on. (non-deployable)
-  * `workers` for Temporal Workers services (deployable)
-* This will demonstrate the use of Temporal for batch processing of payment files. 
-* The outputs for a completed file be N Batches created based on like criteria which will be used to group payments for routing downstream.
+#### 2. Build the Java Project
 
-## Implementation 
+```bash
+cd java
+mvn clean install -DskipTests
+```
 
-There is only one Temporal Namespace used for this project: `initiations`.
+#### 3. Start the API Service
 
-### `core` module
+```bash
+cd java/initiations/initiations-api
+java -jar target/initiations-api-1.0.0.jar
+```
 
-has the following packages
+API listens on http://localhost:8080
 
-**messages**
+#### 4. Start the Workers Service (in another terminal)
 
-This is the IDL used for the API and Workflows (including activities, signals etc).
+```bash
+cd java/initiations/initiations-workers
+java -jar target/initiations-workers-1.0.0.jar
+```
 
-**workflows**
+#### 5. Submit a File
 
-The Workflows, Activities, and other Temporal orchestration logic.
+Generate test data and submit:
 
-#### Workflow: File
+```bash
+cd files
+python3 generate_pain_113.py 100
 
-This Temporal Workflow that will receive a `InitiateFileRequest`.
-The steps to process the file are:
+# Submit for processing
+curl -X PUT http://localhost:8080/api/v1/files/test-file-001 \
+  -H "Content-Type: application/xml" \
+  -d @generated/pain-113-100.xml
+```
 
-1. Perform entitlement checks on the request to process the file
-2. Split the file according to the batch rules criteria.
-   1. Transform the file from PAIN-113 to PAIN-116 format 
-   2. Persist the transformed file records to the database
-      1. For each batch of payments
-         1. The criteria used for the batch is hashed for a `BatchKey` (string)
-         2. UpdateWithStart the `Batch` workflow with the WorkflowID as `BatchKey`
-3. Send an `ack` notification
-4. The Workflow will not be completed, but will await the `approve` signal.
+### API Endpoints
 
-#### Workflow: Batch
+#### Submit File for Processing
 
-This Temporal Workflow will receive a `InitiateBatchRequest` but will be suspended with a `wait` condition for the `approve` signal to be received.
+```
+PUT /api/v1/files/{file_id}
+Content-Type: application/xml
 
-The two steps this will support eventually are:
+Response: 202 Accepted
+Location: /api/v1/files/{file_id}/status
+```
 
-1. Fraud check on the batch
-2. Transmit (route) the batch to the appropriate downstream system
+Starts a `File` Workflow asynchronously. Returns immediately with workflow ID.
 
-### `api` module
+### Temporal Workflows
 
-Has a REST API controller with endpoints for:
+#### File Workflow
 
-`PUT /api/v1/files/{file_id}` where `file_id` is the ID of the file to be processed.
+Handles entire file processing:
 
-It returns a 202 Accepted after using the Temporal SDK Client to `Start` a `File` Workflow with an `InitiateFileRequest`.
+1. Entitlement checks on request
+2. Split file into batches based on payment criteria
+3. Transform from PAIN-113 to PAIN-116 format
+4. Persist batch records to database
+5. Update Batch Workflows for each batch (StartWithUpdate)
+6. Send acknowledgment notification
+7. **Await `approve` signal** to complete
 
-This is a Spring application so use Temporal's Springboot starter and configure `start_workers` to be **false** since we only need a client.
-The TaskQueue used is `initiations`.
+#### Batch Workflow
 
-### `workers` module
+Handles individual batch processing:
 
-Is also a Spring application using Temporal's springboot starter, but this has workers on the task queue named `initiation`.
+1. Wait for `approve` signal
+2. Perform fraud checks
+3. Transmit/route to downstream system
+
+## Configuration
+
+### Temporal
+
+**Namespace**: `initiations`
+**Task Queue**: `initiations`
+
+Configuration files:
+- `config/temporal.yaml` - Default (local) configuration
+- `config/environments/dev.yaml` - Development environment
+- `config/environments/prod.yaml` - Production environment
+
+Override via environment variables:
+```bash
+TEMPORAL_NAMESPACE=initiations
+TEMPORAL_TASK_QUEUE=initiations
+TEMPORAL_ADDRESS=localhost:7233
+```
+
+### Application
+
+**API Module** (`initiations-api`):
+- Temporal Client only (does not start workers)
+- Submits File Workflow tasks to queue
+
+**Workers Module** (`initiations-workers`):
+- Temporal Worker (processes File and Batch Workflows)
+- Listens on `initiations` task queue
+
+## Documentation
+
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Domain design, bounded contexts, workflow orchestration
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Local Kubernetes (Minikube), Docker Compose, production deployment
+- **[WORKFLOWS.md](docs/WORKFLOWS.md)** - Detailed File and Batch Workflow specifications
+- **[files/README.md](files/README.md)** - ISO 20022 PAIN payment message documentation
+- **[files/USAGE.md](files/USAGE.md)** - Test file generator usage
+
+## Development
+
+### Running Tests
+
+```bash
+cd java
+mvn test
+```
+
+### Code Structure
+
+**initiations-core**:
+- `messages/` - Message classes and domain models
+- `workflows/` - Temporal Workflows and Activities
+- `config/` - Shared configuration
+
+**initiations-api**:
+- `controller/` - REST API controllers
+- `config/` - Spring Boot and Temporal client configuration
+
+**initiations-workers**:
+- `config/` - Worker registration and startup
+
+### Building for Production
+
+```bash
+# Build with optimizations
+mvn clean install -P production
+
+# Create Docker images
+docker build -f docker/Dockerfile.api -t temporal-file-processing/initiations-api:latest .
+docker build -f docker/Dockerfile.workers -t temporal-file-processing/initiations-workers:latest .
+```
+
+## Local Kubernetes Deployment
+
+Deploy to Minikube with Temporal Worker Controller:
+
+```bash
+# Start Minikube
+minikube start
+
+# Deploy services
+kubectl apply -k k8s/
+
+# Check status
+kubectl get pods
+```
+
+See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed instructions.
+
+## Temporal UI
+
+Once Temporal is running, access the UI at:
+
+- **Local**: http://localhost:8080
+- **Namespace**: initiations
+- **View Workflows** to monitor File and Batch processing
+
+## Project Scope
+
+This project is focused on turning **intent into authorized, risk-cleared payment obligations, ready for execution**.
+
+Within the `initiations` bounded context, it handles:
+
+✅ File receipt and validation
+✅ Entitlement checks
+✅ Payment splitting into batches
+✅ Format transformation (PAIN-113 → PAIN-116)
+✅ Batch creation and persistence
+✅ Fraud detection setup
+✅ Approval workflows
+
+Out of scope:
+❌ Fraud checks (to be implemented in separate context)
+❌ Downstream transmission (to be routed from here)
+❌ Payment settlement
+
+## Contributing
+
+See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for development guidelines.

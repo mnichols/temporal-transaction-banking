@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: initiations-workers
+
+server:
+  port: 8081
+  shutdown: graceful
+
+logging:
+  level:
+    root: INFO
+    com.temporal.initiations: DEBUG
+
+temporal:
+  namespace: initiations
+  task-queue: initiations
+  # Connection address - override with TEMPORAL_ADDRESS env var
+  address: localhost:7233
+  # Workers are enabled for this application
+  start-workers: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
