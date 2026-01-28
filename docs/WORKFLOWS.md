@@ -4,17 +4,21 @@
 
 **Purpose**: Orchestrate the processing of a complete payment initiation file.
 
-**Input**: `InitiateFileRequest`
-- `fileId` - Unique file identifier
-- `fileContent` - PAIN.001.001.03 XML content
-- `submitterId` - ID of the requester
+**Interface**: `File`
+- **Method**: `void execute(InitiateFileRequest args)`
+- **Input**: `InitiateFileRequest`
+  - `fileId` - Unique file identifier
+  - `submitterId` - ID of the requester
+- **Signal**: `void approve(ApproveFileRequest cmd)` - Approves the file for processing
 
 **Steps**:
 
-### 1. Validate Entitlement
+### 1. Retrieve and Validate File
 
 ```java
-activity.validateFileEntitlement(request);
+String fileContent = activity.retrieveFile(fileId);
+activity.validateFileEntitlement(fileId, submitterId);
+activity.validateFileFormat(fileContent);
 ```
 
 Checks:
@@ -104,8 +108,9 @@ Workflow pauses and waits for:
 **Signal Handler**:
 ```java
 @SignalMethod
-public void approve() {
+public void approve(ApproveFileRequest cmd) {
     this.approved = true;
+    this.approvalId = cmd.approvalId();
 }
 ```
 
@@ -141,8 +146,9 @@ Pauses and waits for approval from the File workflow:
 **Signal Handler**:
 ```java
 @SignalMethod
-public void approve() {
+public void approve(ApproveFileRequest cmd) {
     this.approved = true;
+    this.approvalId = cmd.approvalId();
 }
 ```
 
@@ -333,10 +339,12 @@ void testFileWorkflowApproval() throws Exception {
     );
 
     // Start async
-    WorkflowClient.start(workflow::processFile, request);
+    InitiateFileRequest request = new InitiateFileRequest("file-001", "submitter-123");
+    WorkflowClient.start(workflow::execute, request);
 
     // Send signal
-    workflow.approve();
+    ApproveFileRequest approvalCmd = new ApproveFileRequest("approval-123");
+    workflow.approve(approvalCmd);
 
     // Verify completion
     assertDoesNotThrow(() -> workflow.getResult());

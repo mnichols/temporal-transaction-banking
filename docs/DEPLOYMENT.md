@@ -88,19 +88,20 @@ Temporal workers started on task queue: initiations
 ### Step 5: Submit Test File
 
 ```bash
-cd files
-
-# Generate test file (100 records)
-python3 generate_pain_113.py 100
-
-# Submit to API
+# Initiate a file workflow
 curl -X PUT http://localhost:8080/api/v1/files/test-file-001 \
-  -H "Content-Type: application/xml" \
-  --data-binary @generated/pain-113-100.xml
+  -H "X-Submitter-Id: submitter-123"
 
 # Expected response
 HTTP/1.1 202 Accepted
-Location: /api/v1/files/test-file-001
+Location: /api/v1/files/test-file-001/status/test-file-001-<uuid>
+Content-Type: application/json
+
+{
+  "workflowId": "test-file-001-<uuid>",
+  "fileId": "test-file-001",
+  "message": "Workflow initiated for processing"
+}
 ```
 
 ### Step 6: Monitor in Temporal UI
@@ -190,7 +191,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile.api
     ports:
-      - "8080:8080"
+      - "8081:8080"  # API service runs on port 8080 in container, mapped to 8081 on host
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_NAMESPACE=initiations
@@ -207,6 +208,8 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.workers
+    ports:
+      - "8082:8080"  # Workers service runs on port 8080 in container, mapped to 8082 on host
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_NAMESPACE=initiations
@@ -214,7 +217,7 @@ services:
     depends_on:
       - temporal
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
