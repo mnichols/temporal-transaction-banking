@@ -150,7 +150,7 @@ Access at http://localhost:8080 (when Temporal server is running):
    - Pending approval signal
 
 3. **Batch Workflows**:
-   - Child workflow execution details
+   - File-Related workflow execution details
    - Fraud check results
    - Transmission status
 
