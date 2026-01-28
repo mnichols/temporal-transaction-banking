@@ -57,7 +57,7 @@ java -jar target/initiations-api-1.0.0.jar
 
 Output:
 ```
-2026-01-25 10:15:30.123  INFO 12345 --- [main] com.temporal.initiations.api.InitiationsApiApplication
+2026-01-25 10:15:30.123  INFO 12345 --- [main] com.temporal.initiations.api.Application
 Started InitiationsApiApplication in 3.456 seconds
 ```
 
@@ -80,7 +80,7 @@ java -jar target/initiations-workers-1.0.0.jar
 
 Output:
 ```
-2026-01-25 10:15:35.123  INFO 12346 --- [main] com.temporal.initiations.workers.InitiationsWorkersApplication
+2026-01-25 10:15:35.123  INFO 12346 --- [main] com.temporal.initiations.workers.Application
 Started InitiationsWorkersApplication in 2.123 seconds
 Temporal workers started on task queue: initiations
 ```

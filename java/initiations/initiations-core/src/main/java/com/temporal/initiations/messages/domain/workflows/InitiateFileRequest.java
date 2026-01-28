@@ -1,4 +1,4 @@
-package com.temporal.initiations.messages.api;
+package com.temporal.initiations.messages.domain.workflows;
 
 import jakarta.validation.constraints.NotBlank;
 
@@ -10,15 +10,11 @@ import jakarta.validation.constraints.NotBlank;
  * to be non-blank.
  *
  * @param fileId File identifier from the request path parameter
- * @param fileContent PAIN.001.001.03 XML content from the request body
  * @param submitterId Submitter identifier from X-Submitter-Id HTTP header
  */
 public record InitiateFileRequest(
     @NotBlank(message = "File ID cannot be blank")
     String fileId,
-
-    @NotBlank(message = "File content cannot be blank")
-    String fileContent,
 
     @NotBlank(message = "Submitter ID cannot be blank")
     String submitterId
@@ -28,7 +24,7 @@ public record InitiateFileRequest(
      */
     public InitiateFileRequest {
         fileId = fileId.trim();
-        fileContent = fileContent.trim();
         submitterId = submitterId.trim();
     }
+
 }

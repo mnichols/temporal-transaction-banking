@@ -1,8 +1,12 @@
 package com.temporal.initiations.api.exception;
 
 import com.temporal.initiations.messages.api.ErrorResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -82,14 +86,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
-     * Handles HTTP message not readable exceptions.
+     * Handles HTTP message not readable exceptions by overriding parent handler.
      *
      * Returns 400 Bad Request when the request body is empty or invalid.
      */
-    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
-        org.springframework.http.converter.HttpMessageNotReadableException ex,
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+        HttpMessageNotReadableException ex,
+        HttpHeaders headers,
+        HttpStatusCode status,
         WebRequest request
     ) {
         ErrorResponse errorResponse = new ErrorResponse(
@@ -102,14 +107,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
-     * Handles method argument not valid exceptions.
+     * Handles method argument not valid exceptions by overriding parent handler.
      *
      * Returns 400 Bad Request for invalid path parameters or missing required values.
      */
-    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(
-        org.springframework.web.bind.MethodArgumentNotValidException ex,
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+        MethodArgumentNotValidException ex,
+        HttpHeaders headers,
+        HttpStatusCode status,
         WebRequest request
     ) {
         ErrorResponse errorResponse = new ErrorResponse(

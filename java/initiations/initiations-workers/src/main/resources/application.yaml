@@ -1,6 +1,21 @@
 spring:
   application:
     name: initiations-workers
+  temporal:
+    connection:
+      # Connection settings
+      target: ${TEMPORAL_ADDRESS:localhost:7233}
+
+      # API Key for Temporal Cloud
+      api-key: ${TEMPORAL_API_KEY:}
+
+    start-workers: true
+    namespace: ${TEMPORAL_NAMESPACE:default}
+    workers:
+      - task-queue: initiations
+        # name: your-worker-name # unique name of the Worker. If not specified, Task Queue is used as the Worker name.
+        workflow-classes:
+         - com.temporal.initiations.workflows.FileImpl
 
 server:
   port: 8081
@@ -11,13 +26,6 @@ logging:
     root: INFO
     com.temporal.initiations: DEBUG
 
-temporal:
-  namespace: initiations
-  task-queue: initiations
-  # Connection address - override with TEMPORAL_ADDRESS env var
-  address: localhost:7233
-  # Workers are enabled for this application
-  start-workers: true
 
 management:
   endpoints:
@@ -27,7 +35,3 @@ management:
   endpoint:
     health:
       show-details: when-authorized
-  metrics:
-    export:
-      prometheus:
-        enabled: true

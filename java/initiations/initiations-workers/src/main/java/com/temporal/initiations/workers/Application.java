@@ -17,9 +17,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * It connects to the Temporal server and listens on the "initiations" task queue.
  */
 @SpringBootApplication
-public class InitiationsWorkersApplication {
+public class Application {
 
     public static void main(String[] args) {
-        SpringApplication.run(InitiationsWorkersApplication.class, args);
+        SpringApplication.run(Application.class, args);
     }
 }
