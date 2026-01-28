@@ -4,122 +4,49 @@
 
 **Purpose**: Orchestrate the processing of a complete payment initiation file.
 
-**Interface**: `File`
-- **Method**: `void execute(InitiateFileRequest args)`
-- **Input**: `InitiateFileRequest`
-  - `fileId` - Unique file identifier
-  - `submitterId` - ID of the requester
-- **Signal**: `void approve(ApproveFileRequest cmd)` - Approves the file for processing
+**Interface**: `File` in `com.temporal.initiations.workflows` package
+- **Workflow Method**: Accepts `InitiateFileRequest` containing fileId and submitterId
+- **Signal Method**: `approve()` - Approves the file for processing
 
-**Steps**:
+**Execution Steps**:
 
-### 1. Retrieve and Validate File
+1. **Retrieve and Validate File**
+   - Retrieve the file content from storage
+   - Verify submitter is authorized to process files
+   - Validate file format is valid PAIN.001.001.03
+   - Validate file passes schema validation
+   - Ensure file contains at least one payment record
+   - Throws `ValidationException` if any check fails (workflow fails)
 
-```java
-String fileContent = activity.retrieveFile(fileId);
-activity.validateFileEntitlement(fileId, submitterId);
-activity.validateFileFormat(fileContent);
-```
+2. **Transform File**
+   - Convert PAIN-113 to PAIN-116 format
+   - Extract payment records
+   - Map field values
+   - Generate batch keys based on payment attributes (currency, destination, etc.)
+   - Group payments into `Batch` objects
 
-Checks:
-- Submitter is authorized to process files
-- File format is valid PAIN.001.001.03
-- File passes schema validation
-- File contains at least one payment record
+3. **Persist Batches**
+   - Save each batch record to the database
+   - Mark batches as "awaiting approval"
 
-**Throws**: `ValidationException` if checks fail (workflow fails)
+4. **Create Batch Workflows**
+   - Create a child batch workflow for each batch
+   - Workflow ID is the batch key (hash of batch criteria)
+   - Each batch workflow starts independently
 
-### 2. Transform File
+5. **Send Acknowledgment**
+   - Notify the submitter that file has been received
+   - Report number of batches created
+   - Indicate approval is required to proceed
 
-```java
-TransformedFile transformed = activity.transformPainFile(fileContent);
-```
+6. **Await Approval Signal**
+   - Workflow pauses and waits for approval
+   - Can receive `approve()` signal via Temporal API
+   - Has 24-hour timeout (configurable)
 
-Converts PAIN-113 to PAIN-116 format:
-- Extract payment records
-- Map field values
-- Generate batch keys based on payment attributes (currency, destination, etc.)
-- Create `Batch` objects with grouped payments
-
-**Returns**: `TransformedFile` containing:
-- Original file metadata
-- List of `Batch` objects with payments grouped by criteria
-
-### 3. Persist Batches
-
-For each batch:
-
-```java
-for (Batch batch : transformed.batches) {
-    activity.persistBatch(batch);
-}
-```
-
-Saves batch records to database:
-- One database record per batch
-- Includes payment records
-- Marks as "awaiting approval"
-
-### 4. Create Batch Workflows
-
-For each batch:
-
-```java
-String batchKey = calculateBatchKey(batch);
-WorkflowOptions options = WorkflowOptions.newBuilder()
-    .setWorkflowId(batchKey)
-    .build();
-
-BatchWorkflow batchWorkflow = Workflow.newChildWorkflowStub(
-    BatchWorkflow.class,
-    options
-);
-
-batchWorkflow.processBatch(new InitiateBatchRequest(batch));
-```
-
-Creates a child workflow for each batch:
-- Workflow ID is the batch key (hash of batch criteria)
-- Each batch workflow starts independently
-- Parent workflow waits for all child workflows to start
-
-### 5. Send Acknowledgment
-
-```java
-activity.sendAcknowledgment(fileId, batchCount);
-```
-
-Notifies the submitter:
-- File has been received and split into batches
-- Number of batches created
-- File processing is underway
-- Approval is required to proceed
-
-### 6. Await Approval Signal
-
-```java
-Workflow.await(Duration.ofHours(24), () -> approved);
-```
-
-Workflow pauses and waits for:
-- `approve` signal to be sent via Temporal API
-- 24-hour timeout (configurable)
-
-**Signal Handler**:
-```java
-@SignalMethod
-public void approve(ApproveFileRequest cmd) {
-    this.approved = true;
-    this.approvalId = cmd.approvalId();
-}
-```
-
-### 7. Complete
-
-When approval signal is received or timeout expires, workflow completes.
-
-**Success**: Batches are now approved for downstream processing
-**Failure**: Workflow fails if approval timeout expires (can be retried)
+7. **Complete**
+   - When approval signal is received, batches proceed to downstream processing
+   - If timeout expires, workflow fails (can be retried)
 
 ---
 
@@ -127,68 +54,28 @@ When approval signal is received or timeout expires, workflow completes.
 
 **Purpose**: Orchestrate the processing of a single batch of payments.
 
-**Input**: `InitiateBatchRequest`
-- `batch` - Batch object with grouped payments
-- `batchId` - Unique batch identifier
+**Execution Steps**:
 
-**Steps**:
+1. **Await Approval Signal**
+   - Workflow pauses and waits for approval signal from File workflow
+   - Or 24-hour timeout
+   - Receives `approve()` signal to proceed
 
-### 1. Await Approval Signal
+2. **Fraud Detection Check**
+   - Analyze payment patterns
+   - Check against fraud rules
+   - Return risk score and decision
+   - If fraud check fails: Workflow fails, batch is marked for review
+   - If fraud check passes: Continue to next step
 
-```java
-Workflow.await(Duration.ofHours(24), () -> approved);
-```
+3. **Route/Transmit Downstream**
+   - Route batch based on batch criteria
+   - Transmit in PAIN.116 format
+   - Record transmission details
+   - Update batch status to "transmitted"
 
-Pauses and waits for approval from the File workflow:
-- File workflow sends approval signal
-- Or 24-hour timeout
-
-**Signal Handler**:
-```java
-@SignalMethod
-public void approve(ApproveFileRequest cmd) {
-    this.approved = true;
-    this.approvalId = cmd.approvalId();
-}
-```
-
-### 2. Fraud Detection Check
-
-```java
-FraudCheckResult result = activity.performFraudCheck(batch);
-```
-
-Performs fraud detection:
-- Analyzes payment patterns
-- Checks against fraud rules
-- Returns risk score and decision
-
-**Returns**: `FraudCheckResult`
-- `passed` - Boolean (true if passed fraud check)
-- `riskScore` - Numeric risk level
-- `reason` - Explanation if rejected
-
-**Behavior**:
-- If failed: Workflow fails, batch is marked for review
-- If passed: Continue to next step
-
-### 3. Route/Transmit
-
-```java
-activity.routeBatchDownstream(batch, fraudResult);
-```
-
-Sends batch to downstream processor:
-- Routes based on batch criteria
-- Transmits in PAIN.116 format
-- Records transmission details
-- Updates batch status to "transmitted"
-
-**Returns**: Transmission confirmation
-
-### 4. Complete
-
-Workflow completes successfully when batch is transmitted.
+4. **Complete**
+   - Workflow completes successfully when batch is transmitted
 
 ---
 
@@ -199,28 +86,13 @@ Workflow completes successfully when batch is transmitted.
 **`approve()` signal**:
 - Sender: External approval system or UI
 - Receiver: FileWorkflow
-- Effect: Allows file workflow to proceed to sending approval to batch workflows
+- Effect: Allows file workflow to proceed to signaling batch workflows for approval
 
 **Triggered by**: Manual approval, automated rules, or system integration
 
-```bash
-# Example: Signal via Temporal CLI
-temporal workflow signal \
-  --workflow-id <file-id> \
-  --type approve
-```
-
 ### Child Workflow (Batch) Coordination
 
-When FileWorkflow approves, it signals all child BatchWorkflows:
-
-```java
-for (BatchWorkflow batchWf : batchWorkflows) {
-    batchWf.approve();
-}
-```
-
-Each BatchWorkflow can proceed independently.
+When FileWorkflow receives approval, it signals all child BatchWorkflows to proceed. Each BatchWorkflow can proceed independently.
 
 ---
 
@@ -307,88 +179,29 @@ Application logs (stdout/stderr):
 
 ## Testing Workflows
 
-### Unit Testing Activities
+Temporal workflows should be tested using Temporal's test frameworks:
 
-```java
-@Test
-void testFileValidation() {
-    TestActivityEnvironment env = TestActivityEnvironment.newInstance();
-    env.registerActivitiesImplementations(new FileActivities());
+- **Activity Testing**: Test individual activity implementations with `TestActivityEnvironment`
+- **Workflow Testing**: Test complete workflow execution with `TestWorkflowEnvironment` to simulate signal delivery, timeouts, and activity results
+- **Integration Testing**: Test workflows with actual workers to verify end-to-end execution
 
-    FileActivity activity = env.getActivityClient(FileActivity.class);
-    assertDoesNotThrow(() -> activity.validateFileEntitlement(validRequest));
-}
-```
-
-### Testing Workflows with Test Server
-
-```java
-@Test
-void testFileWorkflowApproval() throws Exception {
-    TestWorkflowEnvironment testEnv = TestWorkflowEnvironment.newInstance();
-    WorkerFactory workerFactory = testEnv.getWorkerFactory();
-    Worker worker = workerFactory.newWorker("initiations");
-
-    worker.registerWorkflowImplementationTypes(FileWorkflowImpl.class);
-    worker.registerActivitiesImplementations(new FileActivities());
-
-    testEnv.start();
-
-    FileWorkflow workflow = testEnv.getWorkflowClient().newWorkflowStub(
-        FileWorkflow.class
-    );
-
-    // Start async
-    InitiateFileRequest request = new InitiateFileRequest("file-001", "submitter-123");
-    WorkflowClient.start(workflow::execute, request);
-
-    // Send signal
-    ApproveFileRequest approvalCmd = new ApproveFileRequest("approval-123");
-    workflow.approve(approvalCmd);
-
-    // Verify completion
-    assertDoesNotThrow(() -> workflow.getResult());
-}
-```
+See source code in `java/initiations/` modules for test implementation examples.
 
 ---
 
 ## Configuration
 
-### Timeout Configuration
+**Timeout Settings**:
+- **File Workflow Execution Timeout**: 24 hours (time to wait for approval)
+- **Batch Workflow Execution Timeout**: 24 hours
+- **Activity Execution Timeout**: Configurable per activity
+- **Heartbeat Timeout**: Configurable per activity
 
-**File Workflow Execution Timeout**:
-```yaml
-# application.yaml
-temporal:
-  file-workflow:
-    timeout-hours: 24  # Time to wait for approval
-```
+**Retry Policy**:
+- Activities have automatic retry with exponential backoff
+- Initial interval: 1 second
+- Max interval: 100 seconds
+- Backoff coefficient: 2.0
+- Max attempts: 3 (configurable)
 
-**Batch Workflow Execution Timeout**:
-```yaml
-temporal:
-  batch-workflow:
-    timeout-hours: 24
-```
-
-**Activity Timeout**:
-```yaml
-temporal:
-  activity:
-    timeout-seconds: 300
-    start-to-close-timeout-seconds: 300
-    heartbeat-timeout-seconds: 60
-```
-
-### Retry Policy
-
-```yaml
-temporal:
-  activity:
-    retry-policy:
-      initial-interval-seconds: 1
-      max-interval-seconds: 100
-      backoff-coefficient: 2.0
-      max-attempts: 3
-```
+Configuration is managed through `application.yaml` in each deployable module.

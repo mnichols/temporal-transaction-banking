@@ -87,22 +87,9 @@ Temporal workers started on task queue: initiations
 
 ### Step 5: Submit Test File
 
-```bash
-# Initiate a file workflow
-curl -X PUT http://localhost:8080/api/v1/files/test-file-001 \
-  -H "X-Submitter-Id: submitter-123"
+Submit a file initiation request to the API. The endpoint initiates a File workflow asynchronously and returns 202 Accepted with the workflow ID.
 
-# Expected response
-HTTP/1.1 202 Accepted
-Location: /api/v1/files/test-file-001/status/test-file-001-<uuid>
-Content-Type: application/json
-
-{
-  "workflowId": "test-file-001-<uuid>",
-  "fileId": "test-file-001",
-  "message": "Workflow initiated for processing"
-}
-```
+See the API documentation in the controller source code for request/response format details.
 
 ### Step 6: Monitor in Temporal UI
 
@@ -114,17 +101,7 @@ Content-Type: application/json
 
 ### Step 7: Approve File (Trigger Signal)
 
-```bash
-# Send approval signal via Temporal CLI
-temporal workflow signal \
-  --address localhost:7233 \
-  --namespace initiations \
-  --workflow-id test-file-001 \
-  --type approve
-
-# OR via curl (if you implement signal endpoint)
-curl -X POST http://localhost:8080/api/v1/files/test-file-001/approve
-```
+Send an approval signal to the file workflow using the Temporal CLI or via a REST endpoint (if implemented).
 
 ### Step 8: View Results
 
@@ -169,62 +146,7 @@ docker build \
 
 ### Run with Docker Compose (Full Stack)
 
-Create `docker-compose.yml` in project root (if not already present):
-
-```yaml
-version: '3.8'
-
-services:
-  temporal:
-    image: temporalio/auto-setup:latest
-    ports:
-      - "7233:7233"
-      - "8080:8080"
-    environment:
-      - DB=sqlite
-      - SQLITE_PATH=/etc/temporal/temporal.db
-    volumes:
-      - temporal_data:/etc/temporal
-
-  api:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.api
-    ports:
-      - "8081:8080"  # API service runs on port 8080 in container, mapped to 8081 on host
-    environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_NAMESPACE=initiations
-      - TEMPORAL_TASK_QUEUE=initiations
-    depends_on:
-      - temporal
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  workers:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.workers
-    ports:
-      - "8082:8080"  # Workers service runs on port 8080 in container, mapped to 8082 on host
-    environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_NAMESPACE=initiations
-      - TEMPORAL_TASK_QUEUE=initiations
-    depends_on:
-      - temporal
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-volumes:
-  temporal_data:
-```
+A `docker-compose.yml` file is provided in the project root for running the full stack locally.
 
 Run all services:
 ```bash
@@ -233,6 +155,13 @@ docker-compose up -d
 # Verify
 docker-compose ps
 ```
+
+This starts:
+- Temporal Server (port 7233, UI on port 8080)
+- API Service (port 8081)
+- Workers Service (port 8082)
+
+Consult `docker-compose.yml` in the project root for full configuration details.
 
 ---
 
@@ -385,18 +314,7 @@ docker push your-registry/initiations-workers:v1.0.0
 
 #### 2. Update Kubernetes Manifests
 
-```yaml
-# k8s/initiations-api/deployment.yaml
-spec:
-  containers:
-    - image: your-registry/initiations-api:v1.0.0
-      imagePullPolicy: Always
-      env:
-        - name: TEMPORAL_ADDRESS
-          value: temporal-server.temporal:7233
-        - name: TEMPORAL_NAMESPACE
-          value: initiations
-```
+Update image references and environment variables in the Kubernetes manifests under `k8s/` directory to point to your container registry and configure Temporal server address.
 
 #### 3. Deploy to Production Cluster
 
@@ -429,55 +347,27 @@ kubectl exec -it $(kubectl get pod -l app=initiations-api -o jsonpath='{.items[0
 
 ### Configuration Management
 
-**Environment Variables** (per environment):
+Configuration is managed through environment variables and Kubernetes ConfigMaps/Secrets:
 
-```bash
-# dev
-TEMPORAL_ADDRESS=temporal-dev.temporal:7233
-TEMPORAL_NAMESPACE=initiations
-LOG_LEVEL=DEBUG
+**Environment Variables**: `TEMPORAL_ADDRESS`, `TEMPORAL_NAMESPACE`, `LOG_LEVEL`
+**Kubernetes**: Use ConfigMaps for configuration and Secrets for sensitive values
 
-# staging
-TEMPORAL_ADDRESS=temporal-staging.temporal:7233
-TEMPORAL_NAMESPACE=initiations
-LOG_LEVEL=INFO
-
-# production
-TEMPORAL_ADDRESS=temporal-prod.temporal:7233
-TEMPORAL_NAMESPACE=initiations
-LOG_LEVEL=WARN
-```
-
-**ConfigMaps** (Kubernetes):
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: temporal-config
-data:
-  temporal.address: temporal-prod.temporal:7233
-  temporal.namespace: initiations
-```
+Environment-specific configurations are managed through deployment manifests in `k8s/` directory.
 
 ### Monitoring & Alerts
 
 **Metrics** (Prometheus):
-```bash
-# Scrape configuration
-- job_name: 'initiations-api'
-  static_configs:
-    - targets: ['localhost:8080']
-  metrics_path: '/actuator/prometheus'
-```
+Metrics are exposed via the actuator endpoint at `/actuator/prometheus`
 
-**Key Metrics**:
-- `workflow.execution.duration` - Time to process file
-- `activity.execution.duration` - Activity timing
-- `temporal.workflow.start.count` - Files submitted
-- `temporal.workflow.complete.count` - Files completed
+**Key Metrics to Monitor**:
+- Workflow execution duration
+- Activity execution time
+- Workflow start/completion counts
+- Workflow/activity failure rates
+- Worker heartbeat status
+- API response times
 
-**Alerts**:
+**Alert Conditions**:
 - Workflow failure rate > 5%
 - Activity timeout rate > 2%
 - Workers unhealthy (no heartbeat)
@@ -502,90 +392,39 @@ data:
 
 ### API Service Issues
 
-```bash
-# Check connectivity to Temporal
-curl -v temporal-server:7233/
-
-# View logs
-docker logs <api-container>
-kubectl logs -f deployment/initiations-api
-
-# Check configuration
-curl http://localhost:8080/actuator/configprops
-```
+- Check connectivity to Temporal server
+- Review application logs
+- Check health endpoint: `http://localhost:8080/actuator/health`
 
 ### Workers Service Issues
 
-```bash
-# Verify workers are registered
-temporal task-queue list-partitions --task-queue initiations
-
-# Check worker health
-curl http://localhost:8081/actuator/health
-
-# View activity execution
-temporal activity describe --activity-id <activity-id>
-```
+- Verify workers are registered with the task queue
+- Check worker health endpoint
+- Review activity execution history in Temporal UI
 
 ### Temporal Server Issues
 
-```bash
-# Check server health
-curl http://localhost:7233/
-
-# View namespaces
-temporal namespace list
-
-# Check task queue
-temporal task-queue describe --task-queue initiations
-```
+- Verify Temporal server is running and accessible
+- Check namespace exists and is configured
+- Verify task queue is registered
 
 ### File Processing Stalled
 
-```bash
-# View workflow in Temporal UI
-# Check for failed activities (red highlights)
-# Send approval signal if awaiting approval
-
-temporal workflow signal \
-  --namespace initiations \
-  --workflow-id <file-id> \
-  --type approve
-```
+- Review workflow execution in Temporal UI
+- Check for failed activities
+- Send approval signal if workflow is awaiting approval
 
 ---
 
 ## Performance Tuning
 
-### API Service
+Performance tuning can be configured through `application.yaml` in each service:
 
-```yaml
-# application.yaml
-server:
-  tomcat:
-    threads:
-      max: 200
-      min-spare: 10
-```
+**API Service**: Configure thread pool sizes for the HTTP server
+**Workers**: Configure concurrent activity and workflow execution limits
+**Temporal Server**: Configure history shards, hosts, and dynamic config update intervals
 
-### Workers
-
-```yaml
-temporal:
-  worker:
-    max-concurrent-activity-execution-size: 200
-    max-concurrent-workflow-task-execution-size: 200
-    max-task-queue-activities-per-second: 1000
-```
-
-### Temporal Server
-
-```yaml
-# Tuning for high throughput
-dynamicConfigUpdateInterval: 5s
-numHistoryShards: 256
-numHistoryHosts: 6
-```
+See the source code `application.yaml` files in each module for tuning parameters.
 
 ---
 
@@ -593,14 +432,10 @@ numHistoryHosts: 6
 
 If deployment fails:
 
-```bash
-# View previous release
-helm history initiations
+Using Helm:
+- `helm history initiations` - View previous releases
+- `helm rollback initiations <revision>` - Rollback to previous version
 
-# Rollback to previous version
-helm rollback initiations <revision>
-
-# OR manual rollback
-kubectl set image deployment/initiations-api \
-  initiations-api=your-registry/initiations-api:v<previous-version>
-```
+Using kubectl:
+- Update image references in deployments to previous version
+- Apply changes to revert to previous state
