@@ -17,14 +17,19 @@ public record InitiateFileRequest(
     String fileId,
 
     @NotBlank(message = "Submitter ID cannot be blank")
-    String submitterId
+    String submitterId,
+    @NotBlank(message = "File Path cannot be blank")
+    String filePath,
+    InitiateFileRequestExecutionOptions executionOptions
 ) {
+
     /**
      * Compact constructor to normalize whitespace.
      */
     public InitiateFileRequest {
         fileId = fileId.trim();
         submitterId = submitterId.trim();
+        filePath = filePath.trim();
     }
 
 }

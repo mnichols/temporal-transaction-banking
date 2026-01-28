@@ -1,9 +1,8 @@
 package com.temporal.initiations.api.controller;
 
 import com.temporal.initiations.messages.api.FileSubmissionResponse;
-import com.temporal.initiations.messages.api.FileWorkflowInput;
 import com.temporal.initiations.messages.domain.workflows.InitiateFileRequest;
-import com.temporal.initiations.workflows.File;
+import com.temporal.initiations.workflows.files.File;
 import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
@@ -89,7 +88,10 @@ public class FileController {
                 .build();
 
         // Create workflow input POJO
-        InitiateFileRequest args = new InitiateFileRequest(fileId, submitterId);
+        InitiateFileRequest args = new InitiateFileRequest(fileId,
+                submitterId,
+                "/files/" + fileId,
+                null);
 
         // Create typed workflow stub and start workflow
         File workflow = workflowClient.newWorkflowStub(File.class, workflowOptions);
