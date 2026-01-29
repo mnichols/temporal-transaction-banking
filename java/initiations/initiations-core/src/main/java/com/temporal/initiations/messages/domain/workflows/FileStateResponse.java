@@ -13,7 +13,6 @@ public class FileStateResponse {
     private ApproveFileRequest approval;
     private SendAckResponse ack;
     private BatchFileResponse batches;
-    private boolean approved;
 
     public FileStateResponse() {
     }
@@ -64,14 +63,6 @@ public class FileStateResponse {
 
     public BatchFileResponse getBatches() {
         return batches;
-    }
-
-    public boolean isApproved() {
-        return approved;
-    }
-
-    public void setApproved(boolean approved) {
-        this.approved = approved;
     }
 
 }

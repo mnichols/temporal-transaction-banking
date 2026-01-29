@@ -9,11 +9,13 @@ import io.temporal.failure.TimeoutFailure;
 import io.temporal.workflow.Workflow;
 import io.temporal.workflow.WorkflowInit;
 
+import java.util.Objects;
+
 public class FileImpl implements File {
 
     private final FileStateResponse state;
     private final BatchActivities batches;
-    private final FileActivities files;
+    private final PersistenceActivities files;
     private final EntitlementActivities entitlements;
     private final NotificationActivities notifications;
 
@@ -22,10 +24,10 @@ public class FileImpl implements File {
         this.state = new FileStateResponse();
         this.state.setArgs(args);
         this.batches = Workflow.newActivityStub(BatchActivities.class, ActivityOptions.newBuilder().build());
-        this.files = Workflow.newActivityStub(FileActivities.class, ActivityOptions.newBuilder().build());
+        this.files = Workflow.newActivityStub(PersistenceActivities.class, ActivityOptions.newBuilder().build());
         this.entitlements = Workflow.newActivityStub(
                 EntitlementActivities.class,
-                // current behavior is to retry 3 times
+                // the current behavior is to retry 3 times
                 // but prefer to fail based on time with ScheduleToCloseTimeout setting...
                 ActivityOptions.newBuilder().setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build()).build());
         this.notifications = Workflow.newActivityStub(NotificationActivities.class, ActivityOptions.newBuilder().build());
@@ -49,7 +51,7 @@ public class FileImpl implements File {
         state.setFile(files.persistFile(new PersistFileRequest(args.fileId(), args.filePath())));
         state.setAck(notifications.sendAck(new SendAckRequest()));
         state.setBatches(batches.batchFile(new BatchFileRequest(args.fileId())));
-        if(state.isApproved()) {
+        if(!Objects.isNull(state.getApproval())) {
             // broadcast approvals to all related Batches (Workflows)
             batches.approveBatches(new ApproveBatchesRequest(state.getBatches().batchKeys()));
         }
