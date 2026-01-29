@@ -1,6 +1,7 @@
-package com.temporal.initiations.workflows;
+package com.temporal.initiations.workflows.files;
 
-import com.temporal.initiations.messages.api.FileWorkflowInput;
+import com.temporal.initiations.messages.domain.workflows.ApproveFileRequest;
+import com.temporal.initiations.messages.domain.workflows.InitiateFileRequest;
 import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
@@ -19,10 +20,10 @@ public interface File {
     /**
      * Main workflow method for processing a payment file.
      *
-     * @param input The file workflow input containing file ID and submitter information
+     * @param args The file workflow args containing file ID and submitter information*
      */
     @WorkflowMethod
-    void processFile(FileWorkflowInput input);
+    void execute(InitiateFileRequest args);
 
     /**
      * Signal method to approve the processed file.
@@ -30,5 +31,5 @@ public interface File {
      * Can be called while the workflow is waiting for approval.
      */
     @SignalMethod
-    void approve();
+    void approve(ApproveFileRequest cmd);
 }

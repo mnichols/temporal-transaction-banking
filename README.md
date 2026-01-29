@@ -10,12 +10,13 @@ This project implements payment transaction banking with the following bounded c
 
 ## Tech Stack
 
-- **Language**: Java 21
-- **Framework**: Spring Boot 4.0.2
+- **Language**: Java 21 (OpenJDK)
+- **Framework**: Spring Boot 3.5.9
 - **Orchestration**: Temporal Workflow Engine (1.32.1)
-- **Build**: Maven (multi-module)
+- **Build**: Maven 3.9.9
 - **Deployment**: Docker Compose (local), Kubernetes (Minikube for local development)
-- **Observability**: OpenTelemetry, Micrometer Prometheus
+- **Observability**: OpenTelemetry 1.40.0, Micrometer Prometheus 1.16.2
+- **Testing**: JUnit 5.14.2, Mockito 5.21.0, AssertJ 3.27.6
 
 ## Project Structure
 
@@ -111,33 +112,35 @@ cd java/initiations/initiations-workers
 java -jar target/initiations-workers-1.0.0.jar
 ```
 
-#### 5. Submit a File
+#### 5. Submit a File for Processing
 
-Generate test data and submit:
+Submit a file initiation request:
 
 ```bash
-cd files
-python3 generate_pain_113.py 100
-
-# Submit for processing
 curl -X PUT http://localhost:8080/api/v1/files/test-file-001 \
-  -H "Content-Type: application/xml" \
-  -d @generated/pain-113-100.xml
+  -H "X-Submitter-Id: submitter-123"
 ```
+
+This initiates a `File` workflow execution for the specified file ID with the given submitter.
 
 ### API Endpoints
 
-#### Submit File for Processing
+#### Initiate File Workflow
 
 ```
 PUT /api/v1/files/{file_id}
-Content-Type: application/xml
+X-Submitter-Id: {submitter_id}
 
 Response: 202 Accepted
-Location: /api/v1/files/{file_id}/status
+Location: /api/v1/files/{file_id}/status/{workflow_id}
+Body: {
+  "workflowId": "test-file-001-<uuid>",
+  "fileId": "test-file-001",
+  "message": "Workflow initiated for processing"
+}
 ```
 
-Starts a `File` Workflow asynchronously. Returns immediately with workflow ID.
+Starts a `File` Workflow asynchronously with the given file ID and submitter. Returns immediately with 202 Accepted and the workflow ID for status tracking.
 
 ### Temporal Workflows
 

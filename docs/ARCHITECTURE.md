@@ -129,9 +129,10 @@ Batch complete, sent downstream
               ↓
 ┌─────────────────────────────────────────────────────────────────┐
 │ initiations-api                                                 │
-│ - Temporal Client                                               │
-│ - WorkflowClient.start(FileWorkflow)                            │
-│ - Returns 202 Accepted                                          │
+│ - Temporal Client (REST interface)                              │
+│ - PUT /api/v1/files/{file_id}                                   │
+│ - WorkflowClient.start(File::execute, input)                    │
+│ - Returns 202 Accepted with workflow ID                         │
 └─────────────┬───────────────────────────────────────────────────┘
               │
               ↓

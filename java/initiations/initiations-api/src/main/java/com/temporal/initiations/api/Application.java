@@ -14,9 +14,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * service. Actual workflow execution happens in the workers service.
  */
 @SpringBootApplication
-public class InitiationsApiApplication {
+public class Application {
 
     public static void main(String[] args) {
-        SpringApplication.run(InitiationsApiApplication.class, args);
+        SpringApplication.run(Application.class, args);
     }
 }
