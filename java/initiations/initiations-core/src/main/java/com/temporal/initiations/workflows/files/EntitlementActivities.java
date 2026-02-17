@@ -7,4 +7,5 @@ import io.temporal.activity.ActivityInterface;
 @ActivityInterface
 public interface EntitlementActivities {
     VerifyEntitlementsResponse verifyEntitlements(VerifyEntitlementsRequest cmd);
+
 }

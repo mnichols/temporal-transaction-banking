@@ -13,7 +13,6 @@ public class FileStateResponse {
     private ApproveFileRequest approval;
     private SendAckResponse ack;
     private BatchFileResponse batches;
-
     public FileStateResponse() {
     }
 

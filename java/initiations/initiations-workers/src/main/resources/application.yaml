@@ -16,6 +16,8 @@ spring:
         # name: your-worker-name # unique name of the Worker. If not specified, Task Queue is used as the Worker name.
         workflow-classes:
          - com.temporal.initiations.workflows.FileImpl
+        activity-beans:
+          - file-initiation-activities
 
 server:
   port: 8081

@@ -11,7 +11,7 @@ import io.temporal.workflow.WorkflowInit;
 
 import java.util.Objects;
 
-public class FileImpl implements File {
+public class FileImpl2 implements File {
 
     private final FileStateResponse state;
     private final BatchActivities batches;
@@ -21,7 +21,7 @@ public class FileImpl implements File {
     private final PersistenceActivities persistence;
 
     @WorkflowInit
-    public FileImpl(InitiateFileRequest args) {
+    public FileImpl2(InitiateFileRequest args) {
         this.state = new FileStateResponse();
         this.state.setArgs(args);
         this.batches = Workflow.newActivityStub(BatchActivities.class, ActivityOptions.newBuilder().build());

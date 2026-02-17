@@ -19,7 +19,7 @@ public class BatchImpl implements Batch {
     }
     @Override
     public void execute(InitiateBatchRequest args) {
-        this.files.transformFile(new TransformFileRequest(this.state.getArgs().fileId(), this.state.getArgs().filePath(), "pain.116.001.03"));
+//        this.files.transformFile(new TransformFileRequest(this.state.getArgs().fileId(), this.state.getArgs().filePath(), "pain.116.001.03"));
 
     }
 
