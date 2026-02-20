@@ -1,6 +1,7 @@
 package com.temporal.initiations.api.controller;
 
 import com.temporal.initiations.messages.api.FileSubmissionResponse;
+import com.temporal.initiations.messages.domain.workflows.FileInfo;
 import com.temporal.initiations.messages.domain.workflows.InitiateFileRequest;
 import com.temporal.initiations.workflows.files.File;
 import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
@@ -10,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -88,9 +91,10 @@ public class FileController {
                 .build();
 
         // Create workflow input POJO
-        InitiateFileRequest args = new InitiateFileRequest(fileId,
+        InitiateFileRequest args = new InitiateFileRequest(
+                Instant.now(Clock.systemUTC()),
+                new FileInfo(fileId, "/files/" + fileId),
                 submitterId,
-                "/files/" + fileId,
                 null);
 
         // Create typed workflow stub and start workflow

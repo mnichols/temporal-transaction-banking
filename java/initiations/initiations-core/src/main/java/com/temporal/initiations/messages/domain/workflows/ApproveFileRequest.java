@@ -1,4 +1,8 @@
 package com.temporal.initiations.messages.domain.workflows;
 
-public record ApproveFileRequest() {
+public final class ApproveFileRequest {
+    public ApproveFileRequest() {
+    }
+
+
 }

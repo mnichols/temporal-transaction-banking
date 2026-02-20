@@ -7,8 +7,6 @@ import com.temporal.initiations.messages.domain.workflows.BatchFileResponse;
 
 public interface BatchActivities {
     BatchFileResponse batchFile(BatchFileRequest cmd);
-
-    BatchKeyResponse computeKeys(BatchKeyRequest cmd);
     // [string]
     ApproveBatchesResponse approveBatches(ApproveBatchesRequest cmd);
 }

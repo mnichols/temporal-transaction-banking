@@ -4,7 +4,12 @@ import com.temporal.initiations.messages.domain.workflows.*;
 import org.springframework.stereotype.Component;
 
 @Component( "file-initiation-activities")
-public class ActivitiesImpl implements BatchActivities, EntitlementActivities, FileActivities, NotificationActivities, PersistenceActivities{
+public class ActivitiesImpl implements BatchActivities,
+        EntitlementActivities,
+        FileActivities,
+        PaymentStatusReportActivities,
+        PreferencesActivities
+{
     @Override
     public BatchFileResponse batchFile(BatchFileRequest cmd) {
 
@@ -22,17 +27,17 @@ public class ActivitiesImpl implements BatchActivities, EntitlementActivities, F
     }
 
     @Override
-    public TransformFileResponse transformFile(TransformFileRequest cmd) {
+    public PersistTransformedFileResponse persistTransformedFile(PersistTransformedFileRequest cmd) {
         return null;
     }
 
     @Override
-    public SendAckResponse sendAck(SendAckRequest cmd) {
+    public SendLevel1Response sendLevel1(SendLevel1Request cmd) {
         return null;
     }
 
     @Override
-    public PersistFileResponse persistFile(PersistFileRequest cmd) {
+    public GetCustomerPreferencesResponse getCustomerPreferences(GetCustomerPreferencesRequest cmd) {
         return null;
     }
 }

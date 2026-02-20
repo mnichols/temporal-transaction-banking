@@ -1,4 +1,9 @@
 package com.temporal.initiations.messages.domain.workflows;
 
-public record InitiateBatchRequest(String batchKey, String fileId, String filePath) {
+import java.time.Instant;
+import java.util.Objects;
+
+public class InitiateBatchRequest {
+    private Instant timestamp;
+    private FileInfo fileInfo;
 }

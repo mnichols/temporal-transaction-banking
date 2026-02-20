@@ -3,7 +3,6 @@ package com.temporal.initiations.workflows.files;
 import com.temporal.initiations.messages.domain.workflows.ApproveBatchRequest;
 import com.temporal.initiations.messages.domain.workflows.BatchStateResponse;
 import com.temporal.initiations.messages.domain.workflows.InitiateBatchRequest;
-import com.temporal.initiations.messages.domain.workflows.TransformFileRequest;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.workflow.Workflow;
 import io.temporal.workflow.WorkflowInit;
