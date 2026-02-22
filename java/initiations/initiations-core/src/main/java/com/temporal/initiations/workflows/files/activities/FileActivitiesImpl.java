@@ -62,6 +62,11 @@ public class FileActivitiesImpl implements
     @Override
     public ApproveBatchesResponse approveBatches(ApproveBatchesRequest cmd) {
         // broadcast a `approveBatch` signal to all the batches
+        var client = Activity.getExecutionContext().getWorkflowClient();
+        for (String batchId : cmd.getBatchIds()) {
+            var wf = client.newWorkflowStub(Batch.class, batchId);
+            wf.approveBatch(new ApproveBatchRequest());
+        }
         return null;
     }
 
@@ -72,8 +77,16 @@ public class FileActivitiesImpl implements
 
     @Override
     public PersistTransformedFileResponse persistTransformedFile(PersistTransformedFileRequest cmd) {
+        var res =  new PersistTransformedFileResponse();
+        // create Payment object
+        // executeBusinessRules on the payment object
+        // transform file to pain-116.001.003
+        // pseudocode: store batchIds on response like res.setBatchIds(transformedFile.getBatchIds());
+        // open DB transaction
+        // perist(payment)
+        // try { commit DB transaction } catch (Exception e){ throw ApplicationFailure }
 
-        return null;
+        return res;
     }
 
     @Override
