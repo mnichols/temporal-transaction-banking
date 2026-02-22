@@ -1,4 +1,4 @@
 package com.temporal.initiations.messages.domain.workflows;
 
-public record PersistFileResponse() {
+public class CompleteFraudCheckResponse {
 }

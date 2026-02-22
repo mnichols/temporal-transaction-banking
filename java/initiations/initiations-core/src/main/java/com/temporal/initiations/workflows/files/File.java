@@ -1,7 +1,9 @@
 package com.temporal.initiations.workflows.files;
 
 import com.temporal.initiations.messages.domain.workflows.ApproveFileRequest;
+import com.temporal.initiations.messages.domain.workflows.GetFileStateResponse;
 import com.temporal.initiations.messages.domain.workflows.InitiateFileRequest;
+import io.temporal.workflow.QueryMethod;
 import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
@@ -31,5 +33,11 @@ public interface File {
      * Can be called while the workflow is waiting for approval.
      */
     @SignalMethod
-    void approve(ApproveFileRequest cmd);
+    void approveFile(ApproveFileRequest cmd);
+
+    @QueryMethod
+    GetFileStateResponse getState();
+
+
+
 }

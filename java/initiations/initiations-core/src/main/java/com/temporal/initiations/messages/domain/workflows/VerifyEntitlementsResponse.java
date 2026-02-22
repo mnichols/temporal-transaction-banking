@@ -1,5 +1,13 @@
 package com.temporal.initiations.messages.domain.workflows;
 
-public record VerifyEntitlementsResponse(boolean isUnauthorized) {
+public class VerifyEntitlementsResponse {
+    private boolean isUnauthorized;
 
+    public boolean isUnauthorized() {
+        return isUnauthorized;
+    }
+
+    public void setUnauthorized(boolean unauthorized) {
+        isUnauthorized = unauthorized;
+    }
 }

@@ -1,4 +1,4 @@
 package com.temporal.initiations.messages.domain.workflows;
 
-public record TransformFileResponse() {
+public class TransmitBatchRequest {
 }

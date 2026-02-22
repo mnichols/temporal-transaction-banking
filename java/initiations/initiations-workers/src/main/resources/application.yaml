@@ -12,11 +12,16 @@ spring:
     start-workers: true
     namespace: ${TEMPORAL_NAMESPACE:default}
     workers:
+      # keeping all the work on a single task queue for now
+      # but later you could split batch processing out to separate task queue to scale independently
       - task-queue: initiations
         # name: your-worker-name # unique name of the Worker. If not specified, Task Queue is used as the Worker name.
         workflow-classes:
          - com.temporal.initiations.workflows.FileImpl
-
+         - com.temporal.initiations.workflows.BatchProcessingImpl
+        activity-beans:
+          - file-initiation-activities
+          - batch-processing-activities
 server:
   port: 8081
   shutdown: graceful
