@@ -1,20 +1,20 @@
 package com.temporal.initiations.messages.domain.workflows;
 
 import java.util.List;
-import java.util.Objects;
 
 public class BatchFileRequest {
     public BatchFileRequest() {
     }
 
-    public BatchFileRequest(FileInfo fileInfo, List<String> batchIds) {
+    public BatchFileRequest(FileInfo fileInfo, List<String> batchIds, GetCustomerPreferencesResponse preferences) {
         this.fileInfo = fileInfo;
         this.batchIds = batchIds;
+        this.preferences = preferences;
     }
 
     private FileInfo fileInfo;
     private List<String> batchIds = new java.util.ArrayList<>();
-
+    private GetCustomerPreferencesResponse preferences;
 
     public List<String> getBatchIds() {
         return batchIds;
@@ -30,5 +30,13 @@ public class BatchFileRequest {
 
     public void setFileInfo(FileInfo fileInfo) {
         this.fileInfo = fileInfo;
+    }
+
+    public GetCustomerPreferencesResponse getPreferences() {
+        return preferences;
+    }
+
+    public void setPreferences(GetCustomerPreferencesResponse preferences) {
+        this.preferences = preferences;
     }
 }

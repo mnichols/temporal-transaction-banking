@@ -1,4 +1,4 @@
-package com.temporal.initiations.workflows.files;
+package com.temporal.initiations.workflows.files.activities;
 
 import com.temporal.initiations.messages.domain.workflows.GetCustomerPreferencesRequest;
 import com.temporal.initiations.messages.domain.workflows.GetCustomerPreferencesResponse;

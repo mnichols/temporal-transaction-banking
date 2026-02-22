@@ -1,4 +1,4 @@
-package com.temporal.initiations.workflows.files;
+package com.temporal.initiations.workflows.files.activities;
 
 import com.temporal.initiations.messages.domain.workflows.SendLevel1Request;
 import com.temporal.initiations.messages.domain.workflows.SendLevel1Response;

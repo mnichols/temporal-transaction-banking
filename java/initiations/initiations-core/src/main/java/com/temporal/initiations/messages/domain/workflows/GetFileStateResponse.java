@@ -8,13 +8,14 @@ public class GetFileStateResponse {
     public List<String> errors = new ArrayList<>();
     private VerifyEntitlementsResponse entitlements;
     private InitiateFileRequest args;
+    private InitiateFileRequestExecutionOptions executionOptions;
     private ApproveFileRequest approval;
     private SendLevel1Response level1Psr;
     private BatchFileResponse batches;
     private GetCustomerPreferencesResponse preferences;
     private PersistTransformedFileResponse transformedFile;
     private FileCheckResponse fileCheck;
-
+    private boolean isCancelled;
     public GetFileStateResponse() {
     }
 
@@ -88,5 +89,21 @@ public class GetFileStateResponse {
 
     public FileCheckResponse getFileCheck() {
         return fileCheck;
+    }
+
+    public boolean isCancelled() {
+        return isCancelled;
+    }
+
+    public void isCancelled(boolean timedOut) {
+        isCancelled = timedOut;
+    }
+
+    public InitiateFileRequestExecutionOptions getExecutionOptions() {
+        return executionOptions;
+    }
+
+    public void setExecutionOptions(InitiateFileRequestExecutionOptions executionOptions) {
+        this.executionOptions = executionOptions;
     }
 }
