@@ -38,6 +38,9 @@ public interface File {
     @QueryMethod
     GetFileStateResponse getState();
 
+    @SignalMethod
+    void recoverFromPreviousFailure();
+
 
 
 }

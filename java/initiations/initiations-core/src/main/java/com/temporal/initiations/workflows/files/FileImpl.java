@@ -101,32 +101,18 @@ public class FileImpl implements File {
                         new GetInitiateFileExecutionOptionsRequest(args.getExecutionOptions()))
                         .getOptions());
 
+        var stepScope = Workflow.newCancellationScope(this::runSteps);
+
         // start a non-blocking timer to prevent files from forever-processing
         // this just flips a bit when the timer fires to other routines can respond (eg the steps of the transaction)
-        Workflow.newCancellationScope((innerScope) -> {
-            Async.procedure(() -> {
-                var conditionMet = Workflow.await(Duration.ofSeconds(args.getExecutionOptions().getTtlSeconds()), ()->state.getApproval() != null);
-                if(conditionMet) {
-                    return;
-                }
-                logger.info("TTL timer fired for File Initiation");
-
-                // ttl Timer fired, so this initiation should be marked as timed out
-                state.isCancelled(true);
-                // perform some other work to let people know this file is not going to be processed
-                // alternatively, you could rerun this WF all over again with ContinueAsNew
-            });
-            // do ahead and run this...it is non-blocking
-            innerScope.run();
-        });
-        var stepScope = Workflow.newCancellationScope((innerScope) -> {
-            if(this.state.isCancelled()) {
-                // something cancelled this process so abort early
-                innerScope.cancel();
-            }
-            this.runSteps();
+        Workflow.newTimer(Duration.ofSeconds(args.getExecutionOptions().getTtlSeconds())).thenApply(result -> {
+            logger.info("TTL timer fired for File Initiation");
+            this.state.isCancelled(true);
+            stepScope.cancel();
+            return null;
         });
 
+        // start the scoped steps
         stepScope.run();
     }
 
@@ -210,5 +196,12 @@ public class FileImpl implements File {
     @Override
     public GetFileStateResponse getState() {
         return this.state;
+    }
+
+    @Override
+    public void recoverFromPreviousFailure() {
+        if(this.state.getEntitlements() == null) {
+            this.runSteps();
+        }
     }
 }

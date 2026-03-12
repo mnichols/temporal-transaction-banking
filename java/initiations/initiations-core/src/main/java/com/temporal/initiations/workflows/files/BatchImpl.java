@@ -50,4 +50,5 @@ public class BatchImpl implements Batch {
         return this.state;
     }
 
+
 }
